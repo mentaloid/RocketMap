@@ -11,7 +11,8 @@ from pgoapi import PGoApi
 from pgoapi.exceptions import AuthException
 
 from .fakePogoApi import FakePogoApi
-from .utils import in_radius, generate_device_info, equi_rect_distance
+from .utils import (in_radius, generate_device_info, equi_rect_distance,
+                    clear_dict_response)
 from .proxy import get_new_proxy
 
 log = logging.getLogger(__name__)
@@ -112,11 +113,11 @@ def get_tutorial_state(api, account):
                        'language': 'en',
                        'timezone': 'America/Denver'})
 
-    response = request.call().get('responses', {})
+    response = request.call(False).get('responses', {})
+    if 'GET_PLAYER' not in response:
+        return []
 
-    get_player = response.get('GET_PLAYER', {})
-    tutorial_state = get_player.get(
-        'player_data', {}).get('tutorial_state', [])
+    tutorial_state = response['GET_PLAYER'].player_data.tutorial_state
     time.sleep(random.uniform(2, 4))
     return tutorial_state
 
@@ -130,7 +131,7 @@ def complete_tutorial(api, account, tutorial_state):
         request = api.create_request()
         request.mark_tutorial_complete(tutorials_completed=0)
         log.debug('Sending 0 tutorials_completed for %s.', account['username'])
-        request.call()
+        request.call(False)
 
     if 1 not in tutorial_state:
         time.sleep(random.uniform(5, 12))
@@ -146,20 +147,20 @@ def complete_tutorial(api, account, tutorial_state):
         })
         log.debug('Sending set random player character request for %s.',
                   account['username'])
-        request.call()
+        request.call(False)
 
         time.sleep(random.uniform(0.3, 0.5))
 
         request = api.create_request()
         request.mark_tutorial_complete(tutorials_completed=1)
         log.debug('Sending 1 tutorials_completed for %s.', account['username'])
-        request.call()
+        request.call(False)
 
     time.sleep(random.uniform(0.5, 0.6))
     request = api.create_request()
     request.get_player_profile()
     log.debug('Fetching player profile for %s...', account['username'])
-    request.call()
+    request.call(False)
 
     starter_id = None
     if 3 not in tutorial_state:
@@ -170,18 +171,18 @@ def complete_tutorial(api, account, tutorial_state):
             'aa8f7687-a022-4773-b900-3a8c170e9aea/1477084794890000',
             'e89109b0-9a54-40fe-8431-12f7826c8194/1477084802881000'])
         log.debug('Grabbing some game assets.')
-        request.call()
+        request.call(False)
 
         time.sleep(random.uniform(1, 1.6))
         request = api.create_request()
-        request.call()
+        request.call(False)
 
         time.sleep(random.uniform(6, 13))
         request = api.create_request()
         starter = random.choice((1, 4, 7))
         request.encounter_tutorial_complete(pokemon_id=starter)
         log.debug('Catching the starter for %s.', account['username'])
-        request.call()
+        request.call(False)
 
         time.sleep(random.uniform(0.5, 0.6))
         request = api.create_request()
@@ -190,27 +191,27 @@ def complete_tutorial(api, account, tutorial_state):
                 'country': 'US',
                 'language': 'en',
                 'timezone': 'America/Denver'})
-        responses = request.call().get('responses', {})
+        responses = request.call(False).get('responses', {})
 
-        inventory = responses.get('GET_INVENTORY', {}).get(
-            'inventory_delta', {}).get('inventory_items', [])
-        for item in inventory:
-            pokemon = item.get('inventory_item_data', {}).get('pokemon_data')
-            if pokemon:
-                starter_id = pokemon.get('id')
+        if 'GET_INVENTORY' in responses:
+            for item in (responses['GET_INVENTORY'].inventory_delta
+                         .inventory_items):
+                pokemon = item.inventory_item_data.pokemon_data
+                if pokemon:
+                    starter_id = pokemon.id
 
     if 4 not in tutorial_state:
         time.sleep(random.uniform(5, 12))
         request = api.create_request()
         request.claim_codename(codename=account['username'])
         log.debug('Claiming codename for %s.', account['username'])
-        request.call()
+        request.call(False)
 
         time.sleep(random.uniform(1, 1.3))
         request = api.create_request()
         request.mark_tutorial_complete(tutorials_completed=4)
         log.debug('Sending 4 tutorials_completed for %s.', account['username'])
-        request.call()
+        request.call(False)
 
         time.sleep(0.1)
         request = api.create_request()
@@ -219,21 +220,21 @@ def complete_tutorial(api, account, tutorial_state):
                 'country': 'US',
                 'language': 'en',
                 'timezone': 'America/Denver'})
-        request.call()
+        request.call(False)
 
     if 7 not in tutorial_state:
         time.sleep(random.uniform(4, 10))
         request = api.create_request()
         request.mark_tutorial_complete(tutorials_completed=7)
         log.debug('Sending 7 tutorials_completed for %s.', account['username'])
-        request.call()
+        request.call(False)
 
     if starter_id:
         time.sleep(random.uniform(3, 5))
         request = api.create_request()
         request.set_buddy_pokemon(pokemon_id=starter_id)
         log.debug('Setting buddy pokemon for %s.', account['username'])
-        request.call()
+        request.call(False)
         time.sleep(random.uniform(0.8, 1.8))
 
     # Sleeping before we start scanning to avoid Niantic throttling.
@@ -269,17 +270,11 @@ def tutorial_pokestop_spin(api, player_level, forts, step_location, account):
 
 
 def get_player_level(map_dict):
-    inventory_items = map_dict['responses'].get(
-        'GET_INVENTORY', {}).get(
-        'inventory_delta', {}).get(
-        'inventory_items', [])
-    player_stats = [item['inventory_item_data']['player_stats']
-                    for item in inventory_items
-                    if 'player_stats' in item.get(
-                    'inventory_item_data', {})]
-    if len(player_stats) > 0:
-        player_level = player_stats[0].get('level', 1)
-        return player_level
+    if 'responses' in map_dict and 'GET_INVENTORY' in map_dict['responses']:
+        for item in (map_dict['responses']['GET_INVENTORY'].inventory_delta
+                     .inventory_items):
+            if item.inventory_item_data.player_stats:
+                return item.inventory_item_data.player_stats.level
 
     return 0
 
@@ -296,12 +291,12 @@ def spin_pokestop(api, fort, step_location):
 
         # Check for reCaptcha
         captcha_url = spin_response['responses'][
-            'CHECK_CHALLENGE']['challenge_url']
+            'CHECK_CHALLENGE'].challenge_url
         if len(captcha_url) > 1:
             log.debug('Account encountered a reCaptcha.')
             return False
 
-        spin_result = spin_response['responses']['FORT_SEARCH']['result']
+        spin_result = spin_response['responses']['FORT_SEARCH'].result
         if spin_result is 1:
             log.debug('Successful Pokestop spin.')
             return True
@@ -336,7 +331,7 @@ def spin_pokestop_request(api, fort, step_location):
         req.check_awarded_badges()
         req.download_settings()
         req.get_buddy_walked()
-        spin_pokestop_response = req.call()
+        spin_pokestop_response = req.call(False)
 
         return spin_pokestop_response
 
@@ -360,7 +355,8 @@ def encounter_pokemon_request(api, encounter_id, spawnpoint_id, scan_location):
         req.check_awarded_badges()
         req.download_settings()
         req.get_buddy_walked()
-        encounter_result = req.call()
+        encounter_result = req.call(False)
+        encounter_result = clear_dict_response(encounter_result, True)
 
         return encounter_result
     except Exception as e:

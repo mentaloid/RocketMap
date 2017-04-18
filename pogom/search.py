@@ -1086,7 +1086,7 @@ def search_worker_thread(args, account_queue, account_sets,
                             # API gets cranky about gyms that are ALMOST 1km
                             # away.)
                             if response['responses'][
-                                    'GET_GYM_DETAILS']['result'] == 2:
+                                    'GET_GYM_DETAILS'].result == 2:
                                 log.warning(
                                     ('Gym @ %f/%f is out of range (%dkm), ' +
                                      'skipping.'),
@@ -1209,7 +1209,7 @@ def map_request(api, position, no_jitter=False):
         req.check_awarded_badges()
         req.download_settings()
         req.get_buddy_walked()
-        response = req.call()
+        response = req.call(False)
         response = clear_dict_response(response, True)
         return response
 
@@ -1241,9 +1241,8 @@ def gym_request(api, position, gym, api_version):
         req.check_awarded_badges()
         req.download_settings()
         req.get_buddy_walked()
-        x = req.call()
+        x = req.call(False)
         x = clear_dict_response(x)
-        # Print pretty(x).
         return x
 
     except Exception as e:
