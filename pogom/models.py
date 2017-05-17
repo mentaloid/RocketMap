@@ -2077,7 +2077,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
             # Check for Unown's alphabetic character.
             if pokemon_id == 201:
-                pokemon[p.encounter_id]['form'] = p.pokemon_data.pokemon_display.form
+                pokemon[p.encounter_id]['form'] = (p.pokemon_data
+                                                    .pokemon_display.form)
 
             if encounter_result is not None and (encounter_result['responses'][
                     'ENCOUNTER']):

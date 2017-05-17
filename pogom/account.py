@@ -258,7 +258,7 @@ def tutorial_pokestop_spin(api, player_level, forts, step_location, account):
             'Spinning Pokestop for account %s.',
             account['username'])
         for fort in forts:
-            if fort.get('type') == 1:
+            if fort.type == 1:
                 if spin_pokestop(api, fort, step_location):
                     log.debug(
                         'Account %s successfully spun a Pokestop ' +
@@ -281,7 +281,7 @@ def get_player_level(map_dict):
 
 def spin_pokestop(api, fort, step_location):
     spinning_radius = 0.04
-    if in_radius((fort['latitude'], fort['longitude']), step_location,
+    if in_radius((fort.latitude, fort.longitude), step_location,
                  spinning_radius):
         log.debug('Attempt to spin Pokestop (ID %s)', fort['id'])
 
@@ -320,9 +320,9 @@ def spin_pokestop_request(api, fort, step_location):
     try:
         req = api.create_request()
         spin_pokestop_response = req.fort_search(
-            fort_id=fort['id'],
-            fort_latitude=fort['latitude'],
-            fort_longitude=fort['longitude'],
+            fort_id=fort.id,
+            fort_latitude=fort.latitude,
+            fort_longitude=fort.longitude,
             player_latitude=step_location[0],
             player_longitude=step_location[1])
         req.check_challenge()
