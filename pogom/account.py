@@ -273,7 +273,7 @@ def get_player_level(map_dict):
     if 'responses' in map_dict and 'GET_INVENTORY' in map_dict['responses']:
         for item in (map_dict['responses']['GET_INVENTORY'].inventory_delta
                      .inventory_items):
-            if item.inventory_item_data.player_stats:
+            if item.inventory_item_data.HasField("player_stats"):
                 return item.inventory_item_data.player_stats.level
 
     return 0
