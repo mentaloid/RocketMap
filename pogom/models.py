@@ -2080,7 +2080,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 pokemon[p.encounter_id]['form'] = (p.pokemon_data
                                                     .pokemon_display.form)
 
-            if encounter_result is not None and (encounter_result['responses'][
+            # We need to check if exist and is not false due to a request error
+            if encounter_result and (encounter_result['responses'][
                     'ENCOUNTER']):
                 pokemon_info = encounter_result['responses'][
                     'ENCOUNTER'].wild_pokemon.pokemon_data
