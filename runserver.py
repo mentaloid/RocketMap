@@ -19,7 +19,7 @@ from flask_cache_bust import init_cache_busting
 from pogom import config
 from pogom.app import Pogom
 from pogom.utils import get_args, now, extract_sprites
-from pogom.altitude import get_gmaps_altitude
+from pogom.altitude import get_altitude
 
 from pogom.search import search_overseer_thread
 from pogom.models import (init_database, create_tables, drop_tables,
@@ -186,22 +186,10 @@ def main():
         log.error("Location not found: '{}'".format(args.location))
         sys.exit()
 
-    # Use the latitude and longitude to get the local altitude from Google.
-    (altitude, status) = get_gmaps_altitude(position[0], position[1],
-                                            args.gmaps_key)
-    if altitude is not None:
-        log.debug('Local altitude is: %sm', altitude)
-        position = (position[0], position[1], altitude)
-    else:
-        if status == 'REQUEST_DENIED':
-            log.error(
-                'Google API Elevation request was denied. You probably ' +
-                'forgot to enable elevation api in https://console.' +
-                'developers.google.com/apis/api/elevation_backend/')
-            sys.exit()
-        else:
-            log.error('Unable to retrieve altitude from Google APIs' +
-                      'setting to 0')
+    # Use the latitude and longitude to get the local altitude from Google
+    # and set the default altitude for the server.
+    altitude = get_altitude(args, position)
+    position = (position[0], position[1], altitude)
 
     log.info('Parsed location is: %.4f/%.4f/%.4f (lat/lng/alt)',
              position[0], position[1], position[2])

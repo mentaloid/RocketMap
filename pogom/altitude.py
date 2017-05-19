@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import sys
 import logging
 import requests
 import random
@@ -29,7 +30,15 @@ def get_gmaps_altitude(lat, lng, gmaps_key):
         status = 'UNKNOWN_ERROR'
         altitude = None
 
-    return (altitude, status)
+    if altitude is None:
+        if status == 'REQUEST_DENIED':
+            log.error(
+                'Google API Elevation request was denied. You probably ' +
+                'forgot to enable elevation api in https://console.' +
+                'developers.google.com/apis/api/elevation_backend/')
+            sys.exit()
+
+    return altitude
 
 
 def randomize_altitude(altitude, altitude_variance):
@@ -49,14 +58,9 @@ def get_fallback_altitude(args, loc):
     global fallback_altitude
 
     # Only query if it's not set, and if it didn't fail already.
-    if fallback_altitude is None and fallback_altitude != -1:
-        (fallback_altitude, status) = get_gmaps_altitude(loc[0], loc[1],
-                                                         args.gmaps_key)
-
-    # Failed, don't try again.
     if fallback_altitude is None:
-        fallback_altitude = -1
-
+        fallback_altitude = get_gmaps_altitude(loc[0], loc[1],
+                                               args.gmaps_key)
     return fallback_altitude
 
 
@@ -66,7 +70,7 @@ def cached_get_altitude(args, loc):
     altitude = LocationAltitude.get_nearby_altitude(loc)
 
     if altitude is None:
-        (altitude, status) = get_gmaps_altitude(loc[0], loc[1], args.gmaps_key)
+        altitude = get_gmaps_altitude(loc[0], loc[1], args.gmaps_key)
         if altitude is not None and altitude != -1:
             LocationAltitude.save_altitude(loc, altitude)
 
@@ -80,7 +84,11 @@ def get_altitude(args, loc):
     else:
         altitude = cached_get_altitude(args, loc)
 
-    if altitude is None or altitude == -1:
-        altitude = args.altitude
+    if altitude is None:
+        log.error('Unable to retrieve altitude from Google' +
+                  'APIs setting to 507')
+        # Default based on the average elevation of cities around the world.
+        # https://www.wikiwand.com/en/List_of_cities_by_elevation
+        altitude = 507
 
     return randomize_altitude(altitude, args.altitude_variance)

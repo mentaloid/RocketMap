@@ -481,7 +481,7 @@ def search_overseer_thread(args, new_location_queue, pause_bit, heartb,
         t.daemon = True
         t.start()
 
-    if not args.no_version_check:
+    if args.version_check_interval > 0:
         log.info('Enabling new API force Watchdog.')
 
     # A place to track the current location.
@@ -512,7 +512,7 @@ def search_overseer_thread(args, new_location_queue, pause_bit, heartb,
             for i in range(0, len(scheduler_array)):
                 scheduler_array[i].scanning_paused()
             # API Watchdog - Continue to check API version.
-            if not args.no_version_check and not odt_triggered:
+            if args.version_check_interval > 0 and not odt_triggered:
                 api_check_time = check_forced_version(
                     args, api_check_time, pause_bit)
             time.sleep(1)
@@ -588,7 +588,7 @@ def search_overseer_thread(args, new_location_queue, pause_bit, heartb,
                              scheduler_array[0])
 
         # API Watchdog - Check if Niantic forces a new API.
-        if not args.no_version_check and not odt_triggered:
+        if args.version_check_interval > 0 and not odt_triggered:
             api_check_time = check_forced_version(
                 args, api_check_time, pause_bit)
 
