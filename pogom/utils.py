@@ -96,7 +96,7 @@ def get_args():
     group.add_argument('--db-name', help='Name of the database to be used.')
     group.add_argument('--db-user', help='Username for the database (MySQL).')
     group.add_argument('--db-pass', help='Password for the database (MySQL).')
-    group.add_argument('--db-host',
+    group.add_argument('--db-host', default='127.0.0.1',
                        help='IP or hostname for the database (MySQL).')
     group.add_argument('--db-port',
                        help='Port for the database (MySQL).',
@@ -114,18 +114,19 @@ def get_args():
                        help=('Disables Pokemon from the map (including ' +
                              'parsing them into local db.)'),
                        action='store_true', default=False)
-    group.add_argument('-ng', '--no-gyms',
-                       help=('Disables Gyms from the map (including ' +
-                             'parsing them into local db).'),
-                       action='store_true', default=False)
     group.add_argument('-nk', '--no-pokestops',
                        help=('Disables PokeStops from the map (including ' +
                              'parsing them into local db).'),
                        action='store_true', default=False)
-    group.add_argument('-gi', '--gym-info',
-                       help=('Get all details about gyms (causes an ' +
-                             'additional API hit for every gym).'),
-                       action='store_true', default=False)
+    gym = group.add_mutually_exclusive_group()
+    gym.add_argument('-ng', '--no-gyms',
+                     help=('Disables Gyms from the map (including ' +
+                           'parsing them into local db).'),
+                     action='store_true', default=False)
+    gym.add_argument('-gi', '--gym-info',
+                     help=('Get all details about gyms (causes an ' +
+                           'additional API hit for every gym).'),
+                     action='store_true', default=False)
     # schedulers
     group = parser.add_argument_group('scheduler')
     scheduler = group.add_mutually_exclusive_group(required=True)
