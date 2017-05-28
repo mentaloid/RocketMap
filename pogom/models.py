@@ -2409,6 +2409,8 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                     'trainer_name': member.trainer_public_profile.name,
                     'trainer_level': member.trainer_public_profile.level
                 })
+                #Otherwise json conversion will fail and nothing will be sent
+                wh_gym_pokemon.pop('last_seen', None)
                 webhook_data['pokemon'].append(wh_gym_pokemon)
 
             i += 1
