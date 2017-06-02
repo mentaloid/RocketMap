@@ -281,6 +281,9 @@ def get_args():
                         help=('Use speed scanning to identify spawn points ' +
                               'and then scan closest spawns.'),
                         action='store_true', default=False)
+    parser.add_argument('-spin', '--pokestop-spinning',
+                        help=('Spin Pokestops with "50%" Chance'),
+                        action='store_true', default=False)
     parser.add_argument('-kph', '--kph',
                         help=('Set a maximum speed in km/hour for scanner ' +
                               'movement.'),
