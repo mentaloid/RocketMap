@@ -68,8 +68,9 @@ def spinning_try(api, fort, step_location, account):
         if spin_result is 1:
             items_recieved = spin_response['responses']['FORT_SEARCH'][
                 'items_awarded']
-            log.info('Successful Pokestop spin with %s recieved %s.',
-                     account['username'], items_recieved)
+            log.info('Successful Pokestop spin with %s.', account['username'])
+            log.debug('Recieved %s from Pokestop %s.', items_recieved,
+                      fort['id'])
             return True
         # Catch all other results.
         elif spin_result is 2:
@@ -97,7 +98,7 @@ def clear_inventory(api, account, map_dict):
         if 'item_id' and 'count' in item:
             item_id = item['item_id']
             count = item['count']
-            if item_id in ITEMS:
+            if item_id in ITEMS and count > 5:
                 item_name = ITEMS[item_id]
                 # Do not let Niantic throttle
                 time.sleep(random.uniform(1.75, 2.75))
