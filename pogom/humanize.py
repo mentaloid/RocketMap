@@ -48,11 +48,10 @@ def pokestop_spinnable(fort, step_location):
 
 # 50% Chance to spin a Pokestop.
 def spinning_try(api, fort, step_location, account):
-    time.sleep(random.uniform(0.8, 1.8))  # Do not let Niantic throttle.
     # Set 50% Chance to spin a Pokestop.
     if random.randint(0, 100) < 50:
+        time.sleep(random.uniform(0.8, 1.8))  # Do not let Niantic throttle.
         spin_response = spin_pokestop_request(api, fort, step_location)
-        time.sleep(random.uniform(2, 4))  # Do not let Niantic throttle.
         if not spin_response:
             return False
 
@@ -66,6 +65,7 @@ def spinning_try(api, fort, step_location, account):
         # Catch all possible responses.
         spin_result = spin_response['responses']['FORT_SEARCH']['result']
         if spin_result is 1:
+            time.sleep(random.uniform(2, 4))  # Do not let Niantic throttle.
             items_recieved = spin_response['responses']['FORT_SEARCH'][
                 'items_awarded']
             log.info('Successful Pokestop spin with %s.', account['username'])

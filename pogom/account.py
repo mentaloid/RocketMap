@@ -306,33 +306,34 @@ def spin_pokestop(api, fort, step_location):
     if in_radius((fort['latitude'], fort['longitude']), step_location,
                  spinning_radius):
         log.debug('Attempt to spin Pokestop (ID %s)', fort['id'])
+
         time.sleep(random.uniform(0.8, 1.8))  # Do not let Niantic throttle
         spin_response = spin_pokestop_request(api, fort, step_location)
         time.sleep(random.uniform(2, 4))  # Do not let Niantic throttle
 
-    # Check for reCaptcha
-    captcha_url = spin_response['responses'][
+        # Check for reCaptcha
+        captcha_url = spin_response['responses'][
             'CHECK_CHALLENGE']['challenge_url']
-    if len(captcha_url) > 1:
-        log.debug('Account encountered a reCaptcha.')
-    return False
+        if len(captcha_url) > 1:
+            log.debug('Account encountered a reCaptcha.')
+            return False
 
-    spin_result = spin_response['responses']['FORT_SEARCH']['result']
-    if spin_result is 1:
-        log.debug('Successful Pokestop spin.')
-        return True
-    elif spin_result is 2:
-        log.debug('Pokestop was not in range to spin.')
-    elif spin_result is 3:
-        log.debug('Failed to spin Pokestop. Has recently been spun.')
-    elif spin_result is 4:
-        log.debug('Failed to spin Pokestop. Inventory is full.')
-    elif spin_result is 5:
-        log.debug('Maximum number of Pokestops spun for this day.')
-    else:
-        log.debug(
-            'Failed to spin a Pokestop. Unknown result %d.',
-            spin_result)
+        spin_result = spin_response['responses']['FORT_SEARCH']['result']
+        if spin_result is 1:
+            log.debug('Successful Pokestop spin.')
+            return True
+        elif spin_result is 2:
+            log.debug('Pokestop was not in range to spin.')
+        elif spin_result is 3:
+            log.debug('Failed to spin Pokestop. Has recently been spun.')
+        elif spin_result is 4:
+            log.debug('Failed to spin Pokestop. Inventory is full.')
+        elif spin_result is 5:
+            log.debug('Maximum number of Pokestops spun for this day.')
+        else:
+            log.debug(
+                'Failed to spin a Pokestop. Unknown result %d.',
+                spin_result)
 
     return False
 
