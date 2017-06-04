@@ -98,12 +98,14 @@ def clear_inventory(api, account, map_dict):
         if 'item_id' and 'count' in item:
             item_id = item['item_id']
             count = item['count']
-            if item_id in ITEMS and count > 5:
+            # Keep 5 Items in Inventory
+            items_to_drop = count - 5
+            if item_id in ITEMS:
                 item_name = ITEMS[item_id]
                 # Do not let Niantic throttle
                 time.sleep(random.uniform(1.75, 2.75))
                 clear_inventory_response = clear_inventory_request(
-                    api, item_id, count)
+                    api, item_id, items_to_drop)
 
                 captcha_url = clear_inventory_response['responses'][
                     'CHECK_CHALLENGE']['challenge_url']
