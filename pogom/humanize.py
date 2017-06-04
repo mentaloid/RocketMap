@@ -99,7 +99,8 @@ def clear_inventory(api, account, map_dict):
             item_id = item['item_id']
             count = item['count']
             # Keep 5 Items in Inventory
-            items_to_drop = count - 5
+            total_items = item.get('count', 0)
+            items_to_drop = total_items - 5
             if item_id in ITEMS:
                 item_name = ITEMS[item_id]
                 # Do not let Niantic throttle
@@ -132,10 +133,10 @@ def clear_inventory(api, account, map_dict):
     return clear_responses
 
 
-def clear_inventory_request(api, item_id, count):
+def clear_inventory_request(api, item_id, items_to_drop):
     try:
         req = api.create_request()
-        req.recycle_inventory_item(item_id=item_id, count=count)
+        req.recycle_inventory_item(item_id=item_id, count=items_to_drop)
         req.check_challenge()
         req.get_hatched_eggs()
         req.get_inventory()
