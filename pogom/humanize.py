@@ -81,6 +81,7 @@ def spinning_try(api, fort, step_location, account, map_dict):
         elif spin_result is 4:
             log.info('Failed to spin Pokestop %s. %s Inventory is full.',
                      fort['id'], account['username'])
+            log.info('Clearing Inventory...')
             clear_inventory(api, account, map_dict)
         elif spin_result is 5:
             log.info('Account %s has spun maximum Pokestops for today.',
