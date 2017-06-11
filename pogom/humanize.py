@@ -151,3 +151,121 @@ def clear_inventory_request(api, item_id, items_to_drop):
     except Exception as e:
         log.warning('Exception while clearing Inventory: %s', repr(e))
         return False
+
+
+def egg_check(api, account, map_dict):
+    incubator = {}
+    basic_incubator_empty = False
+    needs_egg = None
+    ready_to_hatch = None
+    usedIncubatorCount = 0
+
+    inventory = map_dict['responses'][
+        'GET_INVENTORY']['inventory_delta']['inventory_items']
+    for item in inventory:
+        inventory_item_data = item['inventory_item_data']
+        if 'pokemon_data' in inventory_item_data:
+            pokemon_data = inventory_item_data['pokemon_data']
+            egg_id = pokemon_data['id']
+            if ('is egg'and'egg_km_walked_target' in pokemon_data):
+                egg_type = pokemon_data['egg_km_walked_target']
+                log.debug('Account %s has the following Eggs in' +
+                          ' Inventory: %s km.', account['username'],
+                          egg_type)
+    # for item in inventory:
+    #    inventory_item_data = item['inventory_item_data']
+        if 'egg_incubators' in inventory_item_data:
+            incubators = inventory_item_data['egg_incubators']
+            count = -1
+            for incubator in incubators:
+                basic_incubator = inventory_item_data[
+                        'egg_incubators']['egg_incubator'][count]['item_id']
+                count += 1
+                if 'pokemon_id' in inventory_item_data[
+                        'egg_incubators']['egg_incubator'][count]:
+                    log.debug(
+                        'Basic Incubator in use already!')
+                    usedIncubatorCount += 1
+                    basic_incubator_empty = False
+                else:
+                    if incubator == 901:
+                        needs_egg = inventory_item_data[
+                            'egg_incubators']['egg_incubator'][count]['id']
+                        log.debug('Basic Incubator is free using it on' +
+                                  'Account: %s', account['username'])
+                        basic_incubator_empty = True
+                    else:
+                        ready_to_hatch = inventory_item_data[
+                            'egg_incubators']['egg_incubator'][count]['id']
+                        log.debug(
+                            'Egg is going to hatch, clicking it!')
+                        basic_incubator_empty = True
+                        if (ready_to_hatch is not None and egg_id is not None
+                                or needs_egg is not None and egg_id
+                                is not None):
+                            if ready_to_hatch is None:
+                                basic_incubator = needs_egg
+                            else:
+                                basic_incubator = ready_to_hatch
+                            while (basic_incubator_empty is True and
+                                    pokemon_data[
+                                        'egg_km_walked_target'] == 2.0):
+                                time.sleep(random.uniform(2, 4))
+                                egg_hatching_response = egg_hatching_request(
+                                    api, egg_id, basic_incubator)
+
+                                captcha_url = egg_hatching_response[
+                                    'responses']['CHECK_CHALLENGE'][
+                                        'challenge_url']
+                                if len(captcha_url) > 1:
+                                    log.info(
+                                        'Account encountered a reCaptcha.')
+                                    return False
+                                egg_response = egg_hatching_response[
+                                    'responses']['USE_ITEM_EGG_INCUBATOR']
+                                egg_result = egg_response['result']
+                                if egg_result is 0:
+                                    log.exception(
+                                        'Server responded with "unset"')
+                                elif egg_result is 1:
+                                    log.info(
+                                        'Successfully used Basic Incubator')
+                                    ready_to_hatch = None
+                                    needs_egg = None
+                                    basic_incubator_empty = False
+                                    break
+                                elif egg_result is 2:
+                                    log.exception(
+                                        'Incubator %s not found!', incubator)
+                                elif egg_result is 3:
+                                    log.exception(
+                                        'Egg not found! Egg: %s', egg_id)
+                                elif egg_result is 4:
+                                    log.exception(
+                                        'Given ID does not point to EGG!')
+                                elif egg_result is 5:
+                                    log.exception('Incubator in use!')
+                                elif egg_result is 6:
+                                    log.exception('Egg already incubating!')
+                                elif egg_result is 7:
+                                    log.exception('Egg Hatching Failure: %s',
+                                                  egg_result)
+
+
+def egg_hatching_request(api, egg_id, basic_incubator):
+    try:
+        req = api.create_request()
+        req.use_item_egg_incubator(item_id=basic_incubator,
+                                   pokemon_id=egg_id)
+        req.check_challenge()
+        req.get_hatched_eggs()
+        req.get_inventory()
+        req.check_awarded_badges()
+        req.get_buddy_walked()
+        egg_hatching_request = req.call()
+
+        return egg_hatching_request
+
+    except Exception as e:
+        log.warning('Exception while hatching egg: %s', repr(e))
+        return False

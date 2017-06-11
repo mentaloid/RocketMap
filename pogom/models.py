@@ -36,7 +36,8 @@ from .customLog import printPokemon
 
 from .account import (tutorial_pokestop_spin, get_player_level, check_login,
                       setup_api, encounter_pokemon_request)
-from .humanize import pokestop_spinnable, spinning_try, clear_inventory
+from .humanize import (pokestop_spinnable, spinning_try, clear_inventory,
+                       egg_check)
 
 log = logging.getLogger(__name__)
 
@@ -2215,6 +2216,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 if args.pokestop_spinning and pokestop_spinnable(
                         f, step_location):
                     spinning_try(api, f, step_location, account, map_dict)
+                    egg_check(api, account, map_dict)
                     chance = random.randint(0, 100)
                     if chance <= 20:
                         clear_inventory(api, account, map_dict)

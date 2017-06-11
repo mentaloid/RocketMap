@@ -286,8 +286,6 @@ def get_player_level(map_dict):
 def get_inventory_items(map_dict):
     inventory_items_response = map_dict['responses'][
         'GET_INVENTORY']['inventory_delta']['inventory_items']
-    log.debug(
-        'Inventory items response: \n\r{}'.format(inventory_items_response))
 
     inventory_items = []
     if len(inventory_items_response) > 0:
