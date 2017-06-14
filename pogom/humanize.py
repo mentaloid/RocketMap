@@ -103,7 +103,6 @@ def clear_inventory(api, account, map_dict, pokemon_count=0):
         if 'item_id' and 'count' and 'pokemon_count' in item:
             item_id = item['item_id']
             count = item['count']
-            pokemon_count = item['pokemon_count']
             # Keep 5 Items and Pokemons in Inventory.
             total_items = item.get('count', 0)
             items_to_drop = total_items - 5
@@ -111,7 +110,7 @@ def clear_inventory(api, account, map_dict, pokemon_count=0):
             mons_to_release = total_pokemon - 5
             if item_id in ITEMS:
                 item_name = ITEMS[item_id]
-            if total_items and total_pokemon > random.randint(5, 10):
+            if total_items and mons_to_release > random.randint(5, 10):
                 # Do not let Niantic throttle
                 time.sleep(random.uniform(2, 4))
                 clear_inventory_response = clear_inventory_request(
@@ -286,3 +285,25 @@ def clear_inventory_request(api, item_id, items_to_drop):
     except Exception as e:
         log.warning('Exception while clearing Inventory: %s', repr(e))
         return False
+
+
+# https://docs.pogodev.org/api/messages/ReleasePokemonProto
+# https://docs.pogodev.org/api/messages/ReleasePokemonOutProto/
+def request_release_pokemon(api, account, pokemon_id, release_ids=[]):
+    try:
+        req = api.create_request()
+        response = req.release_pokemon(
+            pokemon_id=pokemon_id,
+            pokemon_ids=release_ids
+        )
+        req.check_challenge()
+        req.get_hatched_eggs()
+        req.get_inventory()
+        req.check_awarded_badges()
+        req.get_buddy_walked()
+        response = req.call()
+
+        return response
+
+    except Exception as e:
+        log.error('Exception while releasing Pokemon: %s', repr(e))
