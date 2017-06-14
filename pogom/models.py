@@ -10,7 +10,7 @@ import gc
 import time
 import geopy
 import math
-import random
+
 from peewee import (InsertQuery, Check, CompositeKey, ForeignKeyField,
                     SmallIntegerField, IntegerField, CharField, DoubleField,
                     BooleanField, DateTimeField, fn, DeleteQuery, FloatField,
@@ -36,8 +36,7 @@ from .customLog import printPokemon
 
 from .account import (tutorial_pokestop_spin, get_player_level, check_login,
                       setup_api, encounter_pokemon_request)
-from .humanize import (pokestop_spinnable, spinning_try, clear_inventory,
-                       egg_check)
+from .humanize import (pokestop_spinnable, spinning_try)
 
 log = logging.getLogger(__name__)
 
