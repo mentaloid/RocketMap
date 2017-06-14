@@ -2216,10 +2216,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 if args.pokestop_spinning and pokestop_spinnable(
                         f, step_location):
                     spinning_try(api, f, step_location, account, map_dict)
-                    egg_check(api, account, map_dict)
-                    chance = random.randint(0, 100)
-                    if chance <= 20:
-                        clear_inventory(api, account, map_dict)
 
                 if ((f['id'], int(f['last_modified_timestamp_ms'] / 1000.0))
                         in encountered_pokestops):
