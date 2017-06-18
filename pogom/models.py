@@ -36,8 +36,7 @@ from .customLog import printPokemon
 
 from .account import (tutorial_pokestop_spin, get_player_level, check_login,
                       setup_api, encounter_pokemon_request, pokestop_spinnable,
-                      spinning_try)
-# from .humanize import (pokestop_spinnable, spinning_try)
+                      spinning_try, cleanup_account_stats)
 
 log = logging.getLogger(__name__)
 
@@ -2215,7 +2214,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 # Spin Pokestop with 50% chance.
                 if args.pokestop_spinning and pokestop_spinnable(
                         f, step_location):
-                    spinning_try(api, f, step_location, account, map_dict)
+                    spinning_try(api, f, step_location, account, map_dict,
+                                 args)
 
                 if ((f['id'], int(f['last_modified_timestamp_ms'] / 1000.0))
                         in encountered_pokestops):
