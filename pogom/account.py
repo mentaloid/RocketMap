@@ -283,7 +283,7 @@ def spin_pokestop(api, fort, step_location):
     spinning_radius = 0.04
     if in_radius((fort.latitude, fort.longitude), step_location,
                  spinning_radius):
-        log.debug('Attempt to spin Pokestop (ID %s)', fort.id)
+        log.debug('Attempt to spin Pokestop (ID %s).', fort.id)
 
         time.sleep(random.uniform(0.8, 1.8))  # Do not let Niantic throttle
         spin_response = spin_pokestop_request(api, fort, step_location)

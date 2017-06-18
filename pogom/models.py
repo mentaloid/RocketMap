@@ -1790,7 +1790,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     # Consolidate the individual lists in each cell into two lists of Pokemon
     # and a list of forts.
     cells = map_dict['responses']['GET_MAP_OBJECTS'].map_cells
-    # Get the level for the pokestop spin in any case delete inventory
+    # Get the level for the pokestop spin in any case delete inventory.
     level = get_player_level(map_dict)
     # Use separate level indicator for our L30 encounters.
     encounter_level = level
@@ -2409,7 +2409,7 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                     'trainer_name': member.trainer_public_profile.name,
                     'trainer_level': member.trainer_public_profile.level
                 })
-                # Otherwise json conversion will fail and nothing will be sent
+                # Otherwise json conversion will fail and nothing will be sent.
                 wh_gym_pokemon.pop('last_seen', None)
                 webhook_data['pokemon'].append(wh_gym_pokemon)
 
