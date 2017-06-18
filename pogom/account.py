@@ -98,8 +98,183 @@ def check_login(args, account, api, position, proxy_url):
             account['username'], num_tries)
         raise TooManyLoginAttempts('Exceeded login attempts.')
 
+    time.sleep(random.uniform(2, 4))
+
+    try:  # 1 - Make an empty request to mimick real app behavior.
+        request = api.create_request()
+        request.call()
+        time.sleep(random.uniform(.43, .97))
+    except Exception as e:
+        log.exception('Login for account %s failed.' +
+                      ' Exception in call request: %s', account['username'],
+                      repr(e))
+
+    try:  # 2 - Get Player request.
+        req = api.create_request()
+        req.get_player(
+            player_locale={
+                'country': 'US',
+                'language': 'en',
+                'timezone': 'America/Denver'})
+        req.call()
+        time.sleep(random.uniform(.53, 1.1))
+    except Exception as e:
+        log.exception('Exception getting player information: %s', repr(e))
+
+    try:  # 3 - Download Remote Config Version request.
+        old_config = account['remote_config']
+        request = api.create_request()
+        request.download_remote_config_version(platform=1,
+                                               app_version=int(
+                                                args.api_version.replace(
+                                                    '.', '0')))
+        request.check_challenge()
+        request.get_hatched_eggs()
+        request.get_inventory(last_timestamp_ms=0)
+        request.check_awarded_badges()
+        request.download_settings()
+        response = request.call()
+        parse_download_settings(account, response)
+        time.sleep(random.uniform(.53, 1.1))
+    except Exception as e:
+        log.exception('Error while downloading remote config: %s.', repr(e))
+
+    # 4 - Get Asset Digest request.
+    config = account['remote_config']
+    if config['asset_time'] > old_config.get('asset_time', 0):
+        req_count = 0
+        i = random.randint(0, 3)
+        result = 2
+        page_offset = 0
+        page_timestamp = 0
+        time.sleep(random.uniform(.7, 1.2))
+        while result == 2:
+            try:
+                request = api.create_request()
+                request.get_asset_digest(
+                    platform=1,
+                    app_version=int(args.api_version.replace('.', '0')),
+                    paginate=True,
+                    page_offset=page_offset,
+                    page_timestamp=page_timestamp)
+                request.check_challenge()
+                request.get_hatched_eggs()
+                request.get_inventory(last_timestamp_ms=account[
+                    'last_timestamp_ms'])
+                request.check_awarded_badges()
+                request.download_settings(hash=account[
+                    'remote_config']['hash'])
+                response = request.call()
+                req_count += 1
+                if i > 2:
+                    time.sleep(random.uniform(1.4, 1.6))
+                    i = 0
+                else:
+                    i += 1
+                    time.sleep(random.uniform(.3, .5))
+                    result = response['responses']['GET_ASSET_DIGEST']
+                    page_offset = result['page_offset']
+                    page_timestamp = result['timestamp_ms']
+
+                    time.sleep(random.uniform(.53, 1.1))
+                    log.debug('Completed %d requests to get asset digest.',
+                              req_count)
+
+            except Exception as e:
+                log.exception('Error while downloading Asset Digest: %s.',
+                              repr(e))
+
+    # 5 - Download Item Templates request.
+    if config['template_time'] > old_config.get('template_time', 0):
+        req_count = 0
+        i = random.randint(0, 3)
+        result = 2
+        page_offset = 0
+        page_timestamp = 0
+        while result == 2:
+            try:
+                request = api.create_request()
+                request.download_item_templates(paginate=True,
+                                                page_offset=page_offset,
+                                                page_timestamp=page_timestamp)
+                request.check_challenge()
+                request.get_hatched_eggs()
+                request.get_inventory(last_timestamp_ms=account[
+                    'last_timestamp_ms'])
+                request.check_awarded_badges()
+                request.download_settings(hash=account[
+                    'remote_config']['hash'])
+                response = request.call()
+                req_count += 1
+                if i > 2:
+                    time.sleep(random.uniform(1.4, 1.6))
+                    i = 0
+                else:
+                    i += 1
+                    time.sleep(random.uniform(.3, .5))
+
+                    result = response['responses']['DOWNLOAD_ITEM_TEMPLATES']
+                    page_offset = result['page_offset']
+                    page_timestamp = result['timestamp_ms']
+                    log.debug('Completed %d requests to download' +
+                              ' item templates.', req_count)
+                    time.sleep(random.uniform(.53, 1.1))
+            except Exception as e:
+                log.exception('Error while downloading Item Templates: %s.',
+                              repr(e))
+
+    try:  # 6 - Get Player Profile request.
+        request = api.create_request()
+        request.get_player_profile()
+        request.check_challenge()
+        request.get_hatched_eggs()
+        request.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+        request.check_awarded_badges()
+        request.download_settings(hash=account['remote_config']['hash'])
+        request.get_buddy_walked()
+        response = request.call()
+        time.sleep(random.uniform(.2, .3))
+
+    except Exception as e:
+        log.exception('Login for account %s failed. Exception in ' +
+                      'get_player_profile: %s', account['username'], repr(e))
+
+    try:  # 7 - Check if there are level up rewards to claim.
+        request = api.create_request()
+        request.level_up_rewards()
+        request.check_challenge()
+        request.get_hatched_eggs()
+        request.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+        request.check_awarded_badges()
+        request.download_settings(hash=account['remote_config']['hash'])
+        request.get_buddy_walked()
+        response = request.call()
+        time.sleep(random.uniform(.45, .7))
+
+    except Exception as e:
+        log.exception('Login for account %s failed. Exception in ' +
+                      'level_up_rewards: %s', account['username'], repr(e))
+
+    try:  # 8 - Register Background Device request.
+        request = api.create_request()
+        request.register_background_device(device_type='apple_watch')
+        request.check_challenge()
+        request.get_hatched_eggs()
+        request.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+        request.check_awarded_badges()
+        request.download_settings(hash=account['remote_config']['hash'])
+        request.get_buddy_walked()
+        response = request.call()
+
+        time.sleep(random.uniform(.53, 1.1))
+    except Exception as e:
+        log.exception('Login for account %s failed. Exception in ' +
+                      'Background Device: %s', account['username'], repr(e))
+
+    # TODO: # 9 - Make a request to get Shop items.
+
     log.debug('Login for account %s successful.', account['username'])
-    time.sleep(20)
+    time.sleep(random.uniform(10, 20))
 
 
 # Check if all important tutorial steps have been completed.
@@ -284,28 +459,14 @@ def get_player_level(map_dict):
     return 0
 
 
-def get_inventory_items(map_dict):
-    inventory_items_response = map_dict['responses'][
-        'GET_INVENTORY']['inventory_delta']['inventory_items']
-
-    inventory_items = []
-    if len(inventory_items_response) > 0:
-        inventory_items = ([item['inventory_item_data']['item']
-                           for item in inventory_items_response
-                           if 'item' in item.get('inventory_item_data', {})])
-
-        if len(inventory_items) > 0:
-            return inventory_items
-
-    return False
-
-
 def spin_pokestop(api, fort, step_location):
     spinning_radius = 0.04
     if in_radius((fort['latitude'], fort['longitude']), step_location,
                  spinning_radius):
         log.debug('Attempt to spin Pokestop (ID %s)', fort['id'])
 
+        time.sleep(random.uniform(0.8, 1.8))
+        fort_details_request(api, fort)
         time.sleep(random.uniform(0.8, 1.8))  # Do not let Niantic throttle
         spin_response = spin_pokestop_request(api, fort, step_location)
         time.sleep(random.uniform(2, 4))  # Do not let Niantic throttle
@@ -358,6 +519,28 @@ def spin_pokestop_request(api, fort, step_location):
 
     except Exception as e:
         log.error('Exception while spinning Pokestop: %s.', repr(e))
+        return False
+
+
+def fort_details_request(api, fort):
+    try:
+        req = api.create_request()
+        req.fort_details(
+            fort_id=fort['id'],
+            latitude=fort['latitude'],
+            longitude=fort['longitude'])
+        req.check_challenge()
+        req.get_hatched_eggs()
+        req.get_inventory()
+        req.check_awarded_badges()
+        req.download_settings()
+        req.get_buddy_walked()
+        fort_details_response = req.call()
+
+        return fort_details_response
+
+    except Exception as e:
+        log.error('Exception while getting Pokestop details: %s.', repr(e))
         return False
 
 
@@ -469,3 +652,327 @@ class AccountSet(object):
         # the instance needs to wait until the first account becomes available,
         # so it doesn't need to keep asking if we know we need to wait.
         return False
+
+
+# Check if Pokestop is spinnable and not on cooldown.
+def pokestop_spinnable(fort, step_location):
+    spinning_radius = 0.038  # Maximum distance to spin Pokestops.
+    in_range = in_radius((fort['latitude'], fort['longitude']), step_location,
+                         spinning_radius)
+    now = time.time()
+    pause_needed = 'cooldown_complete_timestamp_ms' in fort and fort[
+        'cooldown_complete_timestamp_ms'] / 1000 > now
+    return in_range and not pause_needed
+
+
+# 50% Chance to spin a Pokestop.
+def spinning_try(api, fort, step_location, account, map_dict):
+    if account['hour_spins'] > args.account_max_spins:
+        status['message'] = (
+            'Account {} has reached its Pokestop spinning limits.').format(
+                account['username'])
+        log.info(status['message'])
+        return False
+
+    # Set 50% Chance to spin a Pokestop.
+    if random.randint(0, 100) < 50:
+        time.sleep(random.uniform(2, 4))  # Do not let Niantic throttle.
+        spin_response = spin_pokestop_request(api, fort, step_location)
+        if not spin_response:
+            return False
+
+        # Check for reCaptcha
+        captcha_url = spin_response['responses']['CHECK_CHALLENGE'][
+            'challenge_url']
+        if len(captcha_url) > 1:
+            log.debug('Account encountered a reCaptcha.')
+            return False
+
+        # Catch all possible responses.
+        spin_result = spin_response['responses']['FORT_SEARCH']['result']
+        if spin_result is 1:
+            # Update account stats and clear inventory if necessary.
+            parse_inventory(api, account, map_dict)
+            account['session_spins'] += 1
+            account['used_pokestops'][pokestop_id] = time.time()
+            incubate_eggs(api, account)
+            clear_inventory(api, account)
+            log.info('Successful Pokestop spin with %s.', account['username'])
+            return True
+        # Catch all other results.
+        elif spin_result is 2:
+            log.info('Pokestop %s was not in range to spin for account %s',
+                     fort['id'], account['username'])
+        elif spin_result is 3:
+            log.info('Failed to spin Pokestop %s. %s Has recently spun this' +
+                     'stop.', fort['id'], account['username'])
+        elif spin_result is 4:
+            log.info('Failed to spin Pokestop %s. %s Inventory is full.',
+                     fort['id'], account['username'])
+            log.info('Clearing Inventory...')
+            clear_inventory(api, account)
+        elif spin_result is 5:
+            log.info('Account %s has spun maximum Pokestops for today.',
+                     account['username'])
+        else:
+            log.info('Failed to spin a Pokestop with account %s .' +
+                     'Unknown result %d.', account['username'], spin_result)
+    return False
+
+
+# Parse player stats and inventory into account.
+def parse_inventory(api, account, map_dict):
+    inventory = map_dict['responses'][
+        'GET_INVENTORY']['inventory_delta']['inventory_items']
+    player_level = account['level']
+    parsed_items = 0
+    parsed_pokemons = 0
+    parsed_eggs = 0
+    for item in inventory:
+        item_data = item.get('inventory_item_data', {})
+        if 'player_stats' in item_data:
+            stats = item_data['player_stats']
+            account['level'] = stats['level']
+            account['spins'] = stats.get('poke_stop_visits', 0)
+            account['walked'] = stats.get('km_walked', 0)
+
+            log.info('Parsed %s player stats: level %d, %f km ' +
+                     'walked, %d spins.',
+                     account['username'], account['level'], account['walked'],
+                     account['spins'])
+        elif 'item' in item_data:
+            item_id = item_data['item']['item_id']
+            item_count = item_data['item'].get('count', 0)
+            account['items'][item_id] = item_count
+            parsed_items += item_count
+        elif 'egg_incubators' in item_data:
+            incubators = item_data['egg_incubators']['egg_incubator']
+            for incubator in incubators:
+                account['incubators'][incubator['id']] = {
+                    'item_id': incubator['item_id'],
+                    'uses_remaining': incubator.get('uses_remaining', 0),
+                    'pokemon_id': incubator.get('pokemon_id', 0)
+                }
+        if 'pokemon_data' in item_data:
+            p_data = item_data['pokemon_data']
+            p_id = p_data.get('id', 0)
+            pokemon_id = p_data.get('pokemon_id', 0)
+            is_egg = p_data.get('is_egg', False)
+            if p_id and pokemon_id:
+                account['pokemons'][p_id] = {
+                    'pokemon_id': pokemon_id,
+                    'move_1': p_data['move_1'],
+                    'move_2': p_data['move_2'],
+                    'height': p_data['height_m'],
+                    'weight': p_data['weight_kg'],
+                    'gender': p_data['pokemon_display']['gender'],
+                    'cp': p_data['cp'],
+                    'cp_multiplier': p_data['cp_multiplier']
+                }
+                parsed_pokemons += 1
+            elif p_id and is_egg:
+                if p_data.get('egg_incubator_id', None):
+                    # Egg is already incubating.
+                    continue
+                account['eggs'][p_id] = {
+                    'captured_cell_id': p_data['captured_cell_id'],
+                    'creation_time_ms': p_data['creation_time_ms'],
+                    'km_target': p_data['egg_km_walked_target']
+                }
+                parsed_eggs += 1
+    log.info(
+        'Parsed %s player inventory: %d items, %d pokemons and %d eggs.',
+        account['username'], parsed_items, parsed_pokemons, parsed_eggs)
+
+
+def reset_account(account):
+    account['start_time'] = time.time()
+    account['remote_config'] = {}
+    account['last_timestamp_ms'] = int(time.time())
+    account['max_items'] = 350
+    account['max_pokemons'] = 250
+    account['items'] = {}
+    account['pokemons'] = {}
+    account['incubators'] = {}
+    account['eggs'] = {}
+    account['level'] = 0
+    account['used_pokestops'] = {}
+    account['spins'] = 0
+    account['session_spins'] = 0
+    account['hour_spins'] = 0
+    account['walked'] = 0.0
+
+
+def cleanup_account_stats(account, pokestop_timeout):
+    elapsed_time = time.time() - account['start_time']
+
+    # Just to prevent division by 0 errors, when needed
+    # set elapsed to 1 millisecond
+    if elapsed_time == 0:
+        elapsed_time = 1
+
+    spins_h = account['session_spins'] * 3600.0 / elapsed_time
+    account['hour_spins'] = spins_h
+
+    # Refresh visited pokestops that were on timeout.
+    used_pokestops = dict(account['used_pokestops'])
+    for pokestop_id in account['used_pokestops']:
+        last_attempt = account['used_pokestops'][pokestop_id]
+        if (last_attempt + pokestop_timeout) < time.time():
+            del used_pokestops[pokestop_id]
+    account['used_pokestops'] = used_pokestops
+
+
+def clear_inventory_request(api, item_id, drop_count):
+    try:
+        req = api.create_request()
+        req.recycle_inventory_item(item_id=item_id, count=drop_count)
+        req.check_challenge()
+        req.get_hatched_eggs()
+        req.get_inventory()
+        req.check_awarded_badges()
+        req.get_buddy_walked()
+        clear_inventory_response = req.call()
+
+        return clear_inventory_response
+
+    except Exception as e:
+        log.warning('Exception while clearing Inventory: %s', repr(e))
+        return False
+
+
+def clear_inventory(api, account):
+    item_ids = [1, 2, 3,
+                101, 102, 103, 104, 201, 202,
+                701, 703, 705, 1101,
+                1102, 1103, 1104, 1105]
+
+    item_names = ['Pokeball', 'Greatball', 'Ultraball',
+                  'Potion', 'Super Potion', 'Hyper Potion', 'Max Potion',
+                  'Revive', 'Max Revive',
+                  'Razz Berry', 'Nanab Berry', 'Pinap Berry', 'Sun Stone',
+                  'Kings Rock', 'Metal Coat', 'Dragon Scale', 'Upgrade']
+
+    indexes = range(len(item_ids))
+    clear_responses = []
+    for i in indexes:
+        item_count = account['items'].get(item_ids[i], 0)
+        if item_count > random.randint(5, 10):
+            item_id = item_ids[i]
+            item_name = item_names[i]
+            drop_count = item_count - 5
+
+            # Do not let Niantic throttle
+            time.sleep(random.uniform(2, 4))
+            clear_inventory_response = clear_inventory_request(
+                api, item_id, drop_count)
+
+            captcha_url = clear_inventory_response['responses'][
+                'CHECK_CHALLENGE']['challenge_url']
+            if len(captcha_url) > 1:
+                log.info('Account encountered a reCaptcha.')
+                return False
+
+            clear_response = clear_inventory_response[
+                'responses']['RECYCLE_INVENTORY_ITEM']
+            clear_responses.append(clear_response)
+
+            clear_result = clear_response['result']
+            if clear_result is 1:
+                log.info('Clearing %s %ss succeeded.', item_count,
+                         item_name)
+            elif clear_result is 2:
+                log.debug('Not enough items to clear, parsing failed.')
+            elif clear_result is 3:
+                log.debug('Tried to recycle incubator, parsing failed.')
+            else:
+                log.warning('Failed to clear inventory.')
+
+            log.debug('Recycled inventory: \n\r{}'.format(clear_responses))
+
+    return clear_responses
+
+
+def incubate_eggs(api, account):
+    incubators = dict(account['incubators'])
+    for incubator_id, incubator in incubators.iteritems():
+        egg_ids = account['eggs'].keys()
+        if not egg_ids:
+            log.debug('Account %s has no eggs to incubate.',
+                      account['username'])
+            break
+        if incubator['pokemon_id'] == 0 and account[
+                'eggs'][p_id]['egg_km_walked_target'] == 2.0:
+            egg_id = random.choice(egg_ids)
+            km_target = account['eggs'][egg_id]['km_target']
+
+            time.sleep(random.uniform(2.0, 4.0))
+            request_use_item_egg_incubator(api, account, incubator_id, egg_id)
+
+            message = (
+                'Egg #%s ({:.1f} km) is on incubator #%s.', egg_id, km_target,
+                incubator_id)
+            log.info(message)
+            del account['eggs'][egg_id]
+        elif incubator['pokemon_id'] != 0:
+            log.info('Already incubating egg!')
+            break
+        else:
+                message = ('Failed to put egg on incubator #%s.', incubator_id)
+                log.error(message)
+                return False
+
+    return True
+
+
+def refresh_stops(account, pokestop_timeout):
+    # Refresh visited pokestops that were on timeout.
+    used_pokestops = dict(account['used_pokestops'])
+    for pokestop_id in account['used_pokestops']:
+        last_attempt = account['used_pokestops'][pokestop_id]
+        if (last_attempt + pokestop_timeout) < time.time():
+            del used_pokestops[pokestop_id]
+    account['used_pokestops'] = used_pokestops
+
+
+def request_use_item_egg_incubator(api, account, incubator_id, egg_id):
+    try:
+        req = api.create_request()
+        req.use_item_egg_incubator(
+            item_id=incubator_id,
+            pokemon_id=egg_id
+        )
+        req.check_challenge()
+        req.get_hatched_eggs()
+        req.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+        req.check_awarded_badges()
+        req.get_buddy_walked()
+        req.call()
+
+    except Exception as e:
+        log.warning('Exception while putting an egg in incubator: %s', repr(e))
+
+    return False
+
+
+def parse_download_settings(account, api_response):
+    if 'DOWNLOAD_REMOTE_CONFIG_VERSION' in api_response['responses']:
+        remote_config = (api_response['responses']
+                         .get('DOWNLOAD_REMOTE_CONFIG_VERSION', 0))
+        if 'asset_digest_timestamp_ms' in remote_config:
+            asset_time = remote_config['asset_digest_timestamp_ms'] / 1000000
+        if 'item_templates_timestamp_ms' in remote_config:
+            template_time = remote_config['item_templates_timestamp_ms'] / 1000
+        log.info(remote_config)
+
+        download_settings = {}
+        download_settings['hash'] = api_response[
+            'responses']['DOWNLOAD_SETTINGS']['hash']
+        download_settings['asset_time'] = asset_time
+        download_settings['template_time'] = template_time
+
+        account['remote_config'] = download_settings
+
+        log.info('Download settings for account %s: %s',
+                 account['username'], download_settings)
+        return True

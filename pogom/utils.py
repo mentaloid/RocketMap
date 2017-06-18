@@ -285,6 +285,12 @@ def get_args():
     parser.add_argument('-spin', '--pokestop-spinning',
                         help=('Spin Pokestops with "50%" Chance'),
                         action='store_true', default=False)
+    parser.add_argument('-ams', '--account-max-spins',
+                        help='Maximum number of Pokestop spins per hour.',
+                        type=int, default=80)
+    parser.add_argument('-prt', '--pokestop-refresh-time',
+                        help='Time until Pokestops can be used again.',
+                        type=int, default=300)
     parser.add_argument('-kph', '--kph',
                         help=('Set a maximum speed in km/hour for scanner ' +
                               'movement.'),
