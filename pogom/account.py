@@ -499,13 +499,13 @@ def spinning_try(api, fort, step_location, account, map_dict, args):
         # Catch all possible responses.
         spin_result = spin_response['responses']['FORT_SEARCH']['result']
         if spin_result is 1:
+            log.info('Successful Pokestop spin with %s.', account['username'])
             # Update account stats and clear inventory if necessary.
             parse_inventory(api, account, map_dict)
+            clear_inventory(api, account)
             account['session_spins'] += 1
             account['used_pokestops'][fort['id']] = time.time()
             incubate_eggs(api, account)
-            clear_inventory(api, account)
-            log.info('Successful Pokestop spin with %s.', account['username'])
             return True
         # Catch all other results.
         elif spin_result is 2:

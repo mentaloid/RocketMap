@@ -36,7 +36,7 @@ from .customLog import printPokemon
 
 from .account import (tutorial_pokestop_spin, get_player_level, check_login,
                       setup_api, encounter_pokemon_request, pokestop_spinnable,
-                      spinning_try, cleanup_account_stats)
+                      spinning_try)
 
 log = logging.getLogger(__name__)
 
