@@ -695,25 +695,20 @@ def incubate_eggs(api, account):
             log.debug('Account %s has no eggs to incubate.',
                       account['username'])
             break
-        if incubator['pokemon_id'] == 0:
-            egg_id = account['eggs']
-            km_target = account['eggs']['km_target']
-            if km_target == 2.0:
-                time.sleep(random.uniform(2.0, 4.0))
-                request_use_item_egg_incubator(api, account, incubator_id,
-                                               egg_id)
-
-            message = (
-                'Egg #%s ({:.1f} km) is on incubator #%s.', egg_id, km_target,
-                incubator_id)
-            log.info(message)
+        if incubator['pokemon_id'] == 0 and incubator['item_id'] == 901:
+            egg_id = random.choice(egg_ids)
+            km_target = account['eggs'][egg_id]['km_target']
+            time.sleep(random.uniform(2.0, 4.0))
+            request_use_item_egg_incubator(api, account, incubator_id,
+                                           egg_id)
+            log.info('Egg #%s ({:.1f} km) is on incubator #%s.').format(
+                    egg_id, km_target, incubator_id)
             del account['eggs'][egg_id]
         elif incubator['pokemon_id'] != 0:
             log.info('Already incubating egg!')
             break
         else:
-                message = ('Failed to put egg on incubator #%s.', incubator_id)
-                log.error(message)
+                log.error('Failed to put egg on incubator #%s.', incubator_id)
                 return False
 
     return True
@@ -728,7 +723,7 @@ def request_use_item_egg_incubator(api, account, incubator_id, egg_id):
         )
         req.check_challenge()
         req.get_hatched_eggs()
-        req.get_inventory(last_timestamp_ms=account['last_timestamp_ms'])
+        req.get_inventory()
         req.check_awarded_badges()
         req.get_buddy_walked()
         req.call()

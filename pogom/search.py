@@ -974,9 +974,6 @@ def search_worker_thread(args, account_queue, account_sets,
                 status['longitude'] = step_location[1]
                 dbq.put((WorkerStatus, {0: WorkerStatus.db_format(status)}))
 
-                # Perform account data cleanup and update statistics.
-                cleanup_account_stats(account, args.pokestop_refresh_time)
-
                 # Nothing back. Mark it up, sleep, carry on.
                 if not response_dict:
                     status['fail'] += 1
