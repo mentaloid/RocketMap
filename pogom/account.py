@@ -494,7 +494,6 @@ def spinning_try(api, fort, step_location, account, map_dict, args):
             clear_inventory(api, account)
             account['session_spins'] += 1
             account['used_pokestops'][fort['id']] = time.time()
-            incubate_eggs(api, account)
             return True
         # Catch all other results.
         elif spin_result is 2:
@@ -695,9 +694,7 @@ def incubate_eggs(api, account):
             log.debug('Account %s has no eggs to incubate.',
                       account['username'])
             break
-        if incubator['pokemon_id'] == 0 and incubator['item_id'] == 901:
-            egg_id = random.choice(egg_ids)
-            km_target = account['eggs'][egg_id]['km_target']
+        if incubator['pokemon_id'] == 0:
             time.sleep(random.uniform(2.0, 4.0))
             request_use_item_egg_incubator(api, account, incubator_id,
                                            egg_id)
