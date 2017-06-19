@@ -695,6 +695,8 @@ def incubate_eggs(api, account):
                       account['username'])
             break
         if incubator['pokemon_id'] == 0:
+            egg_id = random.choice(egg_ids)
+            km_target = account['eggs'][egg_id]['km_target']
             time.sleep(random.uniform(2.0, 4.0))
             request_use_item_egg_incubator(api, account, incubator_id,
                                            egg_id)
