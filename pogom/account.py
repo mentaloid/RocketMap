@@ -471,7 +471,7 @@ def spinning_try(api, fort, step_location, account, map_dict, args):
                  account['username'])
         return False
     # Set 50% Chance to spin a Pokestop.
-    if random.randint(0, 100) < 120:
+    if random.randint(0, 100) < 50:
         time.sleep(random.uniform(2, 4))  # Do not let Niantic throttle.
         spin_response = spin_pokestop_request(api, fort, step_location)
         if not spin_response:
@@ -524,7 +524,7 @@ def parse_inventory(api, account, map_dict):
     parsed_pokemons = 0
     parsed_eggs = 0
     parsed_incubators = 0
-    #while not using deltas we are inserting all every time
+    # while not using deltas we are inserting all every time
     account['incubators'] = []
     account['eggs'] = []
     for item in inventory:
