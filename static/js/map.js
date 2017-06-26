@@ -823,7 +823,7 @@ function setupGymMarker(item) {
         },
         map: map,
         icon: {
-            url: 'static/forts/' + Store.get('gymMarkerStyle') + '/' + gymTypes[item['team_id']] + (item['team_id'] !== 0 ? '_' + item['pokemon'].length : '') + '.png',
+            url: 'static/forts/' + Store.get('gymMarkerStyle') + '/' + gymTypes[item['team_id']] + (item['pokemon'].length !== 0 ? '_' + item['pokemon'].length : '') + '.png',
             scaledSize: new google.maps.Size(48, 48)
         }
     })
@@ -873,7 +873,7 @@ function setupGymMarker(item) {
 
 function updateGymMarker(item, marker) {
     marker.setIcon({
-        url: 'static/forts/' + Store.get('gymMarkerStyle') + '/' + gymTypes[item['team_id']] + (item['team_id'] !== 0 ? '_' + item['pokemon'].length : '') + '.png',
+        url: 'static/forts/' + Store.get('gymMarkerStyle') + '/' + gymTypes[item['team_id']] + (item['pokemon'].length !== 0 ? '_' + item['pokemon'].length : '') + '.png',
         scaledSize: new google.maps.Size(48, 48)
     })
     marker.infoWindow.setContent(gymLabel(gymTypes[item['team_id']], item['team_id'], item['gym_points'], item['latitude'], item['longitude'], item['last_scanned'], item['last_modified'], item['name'], item['pokemon'], item['gym_id']))
@@ -883,7 +883,7 @@ function updateGymMarker(item, marker) {
 function updateGymIcons() {
     $.each(mapData.gyms, function (key, value) {
         mapData.gyms[key]['marker'].setIcon({
-            url: 'static/forts/' + Store.get('gymMarkerStyle') + '/' + gymTypes[mapData.gyms[key]['team_id']] + (mapData.gyms[key]['team_id'] !== 0 ? '_' + mapData.gyms[key]['pokemon'].length : '') + '.png',
+            url: 'static/forts/' + Store.get('gymMarkerStyle') + '/' + gymTypes[mapData.gyms[key]['team_id']] + (mapData.gyms[key]['pokemon'].length !== 0 ? '_' + mapData.gyms[key]['pokemon'].length : '') + '.png',
             scaledSize: new google.maps.Size(48, 48)
         })
     })
@@ -1769,9 +1769,12 @@ function showGymDetails(id) { // eslint-disable-line no-unused-vars
         var lastScannedDateStr = getDateStr(result.last_scanned)
         var lastModifiedDateStr = getDateStr(result.last_modified)
         var freeSlots = 6 - result.pokemon.length
-        var gymLevelStr = `<div>
-                <b>${freeSlots} Free Slots</b>
-            </div>`
+        var gymLevelStr = ''
+        if (result.team_id !== 0 && result.pokemon.length !== 0) {
+            gymLevelStr =`<div>
+                            <b>${freeSlots} Free Slots</b>
+                        </div>`
+        }
         var pokemonHtml = ''
         var headerHtml = `
             <center>
