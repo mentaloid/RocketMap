@@ -1230,11 +1230,10 @@ def gym_request(api, position, gym, api_version):
                  calc_distance(position, [gym['latitude'], gym['longitude']]))
         req = api.create_request()
         req.gym_get_info(gym_id=gym['gym_id'],
-                         player_latitude=f2i(position[0]),
-                         player_longitude=f2i(position[1]),
-                         gym_latitude=gym['latitude'],
-                         gym_longitude=gym['longitude'],
-                         client_version=api_version)
+                         player_lat_degrees=f2i(position[0]),
+                         player_lng_degrees=f2i(position[1]),
+                         gym_lat_degrees=gym['latitude'],
+                         gym_lng_degrees=gym['longitude'],
         req.check_challenge()
         req.get_hatched_eggs()
         req.get_inventory()
