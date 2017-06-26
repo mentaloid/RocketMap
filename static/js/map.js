@@ -63,7 +63,6 @@ var updateWorker
 var lastUpdateTime
 
 var gymTypes = ['Uncontested', 'Mystic', 'Valor', 'Instinct']
-var gymPrestige = [2000, 4000, 8000, 12000, 16000, 20000, 30000, 40000, 50000]
 var audio = new Audio('static/sounds/ding.mp3')
 
 var genderType = ['♂', '♀', '⚲']
@@ -1338,7 +1337,7 @@ function processGyms(i, item) {
     }
 
     if (Store.get('showOpenGymsOnly')) {
-        if (item.pokemon.length === 6 ) {
+        if (item.pokemon.length === 6) {
             removeGymFromMap(item['gym_id'])
             return true
         }
