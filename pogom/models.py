@@ -2451,49 +2451,41 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
         if args.webhooks:
             webhook_data = {
                 'id': b64encode(str(gym_id)),
-                'latitude': gym_state['fort_data']['latitude'],
-                'longitude': gym_state['fort_data']['longitude'],
-                'team': gym_state['fort_data'].get('owned_by_team', 0),
+                'latitude': gym_state['pokemon_fort_proto']['latitude'],
+                'longitude': gym_state['pokemon_fort_proto']['longitude'],
+                'team': gym_state['pokemon_fort_proto'].get(
+                        'owned_by_team', 0),
                 'name': g['name'],
-                'url': g['urls'][0],
+                'url': g['url'][0],
                 'pokemon': [],
             }
 
         for member in gym_state.get('gym_defender', []):
+            pokemon = member['motivated_pokemon']['pokemon']
             gym_members[i] = {
                 'gym_id': gym_id,
-                'pokemon_uid': member['motivated_pokemon']['pokemon']
-                ['pokemon_id'],
+                'pokemon_uid': pokemon['id']
             }
 
             gym_pokemon[i] = {
-                'pokemon_uid': member['motivated_pokemon']['pokemon']['id'],
-                'pokemon_id': member['motivated_pokemon']['pokemon']
-                ['pokemon_id'],
-                'cp': member['motivated_pokemon']['cp_now'],
-                'trainer_name': member['motivated_pokemon']['pokemon']
-                ['owner_name'],
-                'num_upgrades': member['motivated_pokemon']
-                ['pokemon'].get('num_upgrades', 0),
-                'move_1': member['motivated_pokemon']['pokemon'].get('move_1'),
-                'move_2': member['motivated_pokemon']['pokemon'].get('move_2'),
-                'height': member['motivated_pokemon']
-                ['pokemon'].get('height_m'),
-                'weight': member['motivated_pokemon']
-                ['pokemon'].get('weight_kg'),
-                'stamina': member['motivated_pokemon']
-                ['pokemon'].get('stamina'),
-                'stamina_max': member['motivated_pokemon']
-                ['pokemon'].get('stamina_max'),
-                'cp_multiplier': member['motivated_pokemon']
-                ['pokemon'].get('cp_multiplier'),
-                'additional_cp_multiplier': member['motivated_pokemon']
-                ['pokemon'].get('additional_cp_multiplier', 0),
-                'iv_defense': member['motivated_pokemon']['pokemon'].get(
+                'pokemon_uid': pokemon['id'],
+                'pokemon_id': pokemon['pokemon_id'],
+                'cp': pokemon['cp'],
+                'trainer_name': pokemon['owner_name'],
+                'num_upgrades': pokemon.get('num_upgrades', 0),
+                'move_1': pokemon.get('move_1'),
+                'move_2': pokemon.get('move_2'),
+                'height': pokemon.get('height_m'),
+                'weight': pokemon.get('weight_kg'),
+                'stamina': pokemon.get('stamina'),
+                'stamina_max': pokemon.get('stamina_max'),
+                'cp_multiplier': pokemon.get('cp_multiplier'),
+                'additional_cp_multiplier': pokemon.get('additional_cp_multiplier', 0),
+                'iv_defense': pokemon.get(
                     'individual_defense', 0),
-                'iv_stamina': member['motivated_pokemon']['pokemon'].get(
+                'iv_stamina': pokemon.get(
                     'individual_stamina', 0),
-                'iv_attack': member['motivated_pokemon']['pokemon'].get(
+                'iv_attack': pokemon.get(
                     'individual_attack', 0),
                 'last_seen': datetime.utcnow(),
             }

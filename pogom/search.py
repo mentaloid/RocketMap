@@ -1240,10 +1240,10 @@ def gym_request(api, position, gym, api_version):
         req.check_awarded_badges()
         req.download_settings()
         req.get_buddy_walked()
-        x = req.call()
-        x = clear_dict_response(x)
+        response = req.call()
+        response = clear_dict_response(response)
         # Print pretty(x).
-        return x
+        return response
 
     except Exception as e:
         log.warning('Exception while downloading gym details: %s.', repr(e))
