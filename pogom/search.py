@@ -1233,7 +1233,7 @@ def gym_request(api, position, gym, api_version):
                          player_lat_degrees=f2i(position[0]),
                          player_lng_degrees=f2i(position[1]),
                          gym_lat_degrees=gym['latitude'],
-                         gym_lng_degrees=gym['longitude'],
+                         gym_lng_degrees=gym['longitude'])
         req.check_challenge()
         req.get_hatched_eggs()
         req.get_inventory()
