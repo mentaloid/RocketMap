@@ -336,7 +336,7 @@ def spin_pokestop_request(api, fort, step_location):
         req.check_awarded_badges()
         req.download_settings()
         req.get_buddy_walked()
-        req.request.get_inbox(is_history=True)
+        req.get_inbox(is_history=True)
         spin_pokestop_response = req.call()
 
         return spin_pokestop_response
