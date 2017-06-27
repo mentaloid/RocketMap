@@ -2294,7 +2294,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'team_id': f.get('owned_by_team', 0),
                     'guard_pokemon_id': f.get('guard_pokemon_id', 0),
                     'slots_available': f['gym_display'].get(
-                        'slots_available', 0)
+                        'slots_available', 0),
                     'enabled': f['enabled'],
                     'latitude': f['latitude'],
                     'longitude': f['longitude'],
@@ -2485,7 +2485,8 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                 'stamina': pokemon.get('stamina'),
                 'stamina_max': pokemon.get('stamina_max'),
                 'cp_multiplier': pokemon.get('cp_multiplier'),
-                'additional_cp_multiplier': pokemon.get('additional_cp_multiplier', 0),
+                'additional_cp_multiplier': pokemon.get(
+                    'additional_cp_multiplier', 0),
                 'iv_defense': pokemon.get(
                     'individual_defense', 0),
                 'iv_stamina': pokemon.get(
@@ -3034,7 +3035,7 @@ def database_migrate(db, old_ver):
         migrate(
             migrator.drop_column('gym', 'gym_points'),
             migrator.add_column('gym', 'slots_available',
-                    SmallIntegerField(null=True)),
+                                SmallIntegerField(null=True)),
             migrator.add_column('gympokemon', 'cp_decayed',
                                 SmallIntegerField(null=True))
         )
