@@ -615,7 +615,7 @@ class Gym(BaseModel):
                        .select(
                            GymMember.gym_id,
                            GymPokemon.cp.alias('pokemon_cp'),
-                           GymPokemon.cp_now.alias('pokemon_cp_now'),
+                           GymPokemon.cp_decayed.alias('pokemon_cp_decayed'),
                            GymPokemon.pokemon_id,
                            Trainer.name.alias('trainer_name'),
                            Trainer.level.alias('trainer_level'))
@@ -626,7 +626,7 @@ class Gym(BaseModel):
                                           Trainer.name))
                        .where(GymMember.gym_id << gym_ids)
                        .where(GymMember.last_scanned > Gym.last_modified)
-                       .order_by(GymMember.gym_id, GymPokemon.cp_now)
+                       .order_by(GymMember.gym_id, GymPokemon.cp_decayed)
                        .distinct()
                        .dicts())
 
@@ -696,7 +696,7 @@ class Gym(BaseModel):
 
         pokemon = (GymMember
                    .select(GymPokemon.cp.alias('pokemon_cp'),
-                           GymPokemon.cp_now.alias('pokemon_cp_now'),
+                           GymPokemon.cp_decayed.alias('pokemon_cp_decayed'),
                            GymPokemon.pokemon_id,
                            GymPokemon.pokemon_uid,
                            GymPokemon.move_1,
@@ -712,7 +712,7 @@ class Gym(BaseModel):
                    .join(Trainer, on=(GymPokemon.trainer_name == Trainer.name))
                    .where(GymMember.gym_id == id)
                    .where(GymMember.last_scanned > Gym.last_modified)
-                   .order_by(GymPokemon.cp_now.desc())
+                   .order_by(GymPokemon.cp_decayed.desc())
                    .distinct()
                    .dicts())
 
@@ -1687,7 +1687,7 @@ class GymPokemon(BaseModel):
     pokemon_uid = Utf8mb4CharField(primary_key=True, max_length=50)
     pokemon_id = SmallIntegerField()
     cp = SmallIntegerField()
-    cp_now = SmallIntegerField()
+    cp_decayed = SmallIntegerField()
     trainer_name = Utf8mb4CharField(index=True)
     num_upgrades = SmallIntegerField(null=True)
     move_1 = SmallIntegerField(null=True)
@@ -2472,8 +2472,8 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
             gym_pokemon[i] = {
                 'pokemon_uid': pokemon['id'],
                 'pokemon_id': pokemon['pokemon_id'],
-                'cp': pokemon['cp'],
-                'cp_now': pokemon['cp_now'],
+                'cp': member['motivated_pokemon']['cp_when_deployed'],
+                'cp_decayed': member['motivated_pokemon']['cp_now'],
                 'trainer_name': pokemon['owner_name'],
                 'num_upgrades': pokemon.get('num_upgrades', 0),
                 'move_1': pokemon.get('move_1'),
@@ -2504,8 +2504,8 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                 webhook_data['pokemon'].append({
                     'pokemon_uid': pokemon['id'],
                     'pokemon_id': pokemon['pokemon_id'],
-                    'cp': pokemon['cp'],
-                    'cp_now': pokemon['cp_now'],
+                    'cp': member['motivated_pokemon']['cp_when_deployed'],
+                    'cp_decayed': member['motivated_pokemon']['cp_now'],
                     'num_upgrades': pokemon.get(
                         'num_upgrades', 0),
                     'move_1': pokemon.get('move_1'),
@@ -3033,7 +3033,7 @@ def database_migrate(db, old_ver):
             migrator.drop_column('gym', 'gym_points'),
             migrator.add_column('gym', 'slots_available',
                     SmallIntegerField(null=True)),
-            migrator.add_column('gympokemon', 'cp_now',
+            migrator.add_column('gympokemon', 'cp_decayed',
                                 SmallIntegerField(null=True))
         )
 
