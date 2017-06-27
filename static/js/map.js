@@ -1771,7 +1771,7 @@ function showGymDetails(id) { // eslint-disable-line no-unused-vars
         var freeSlots = 6 - result.pokemon.length
         var gymLevelStr = ''
         if (result.team_id !== 0 && result.pokemon.length !== 0) {
-            gymLevelStr =`<div>
+            gymLevelStr = `<div>
                             <b>${freeSlots} Free Slots</b>
                         </div>`
         }
