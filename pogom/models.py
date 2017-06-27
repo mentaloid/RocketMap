@@ -2359,6 +2359,7 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
         gym_details[gym_id] = {
             'gym_id': gym_id,
             'name': g['name'],
+            'description': g.get('description'),
             'url': g['url']
         }
 
@@ -2370,18 +2371,14 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                 'team': gym_state['pokemon_fort_proto'].get(
                     'owned_by_team', 0),
                 'name': g['name'],
+                'description': g.get('description'),
                 'url': g['url'],
                 'pokemon': [],
             }
 
         for member in gym_state.get('gym_defender', []):
             pokemon = member['motivated_pokemon']['pokemon']
-            gym_members[i] = {
-                'gym_id':
-                    gym_id,
-                'pokemon_uid':
-                    pokemon['id']
-            }
+            gym_members[i] = {'gym_id': gym_id, 'pokemon_uid': pokemon['id']}
 
             gym_pokemon[i] = {
                 'pokemon_uid':
@@ -2389,7 +2386,7 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                 'pokemon_id':
                     pokemon['pokemon_id'],
                 'cp':
-                    pokemon['cp'],
+                    member['motivated_pokemon']['cp_when_deployed'],
                 'trainer_name':
                     pokemon['owner_name'],
                 'num_upgrades':
@@ -2434,7 +2431,7 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                     'pokemon_id':
                         pokemon['pokemon_id'],
                     'cp':
-                        pokemon['cp'],
+                        member['motivated_pokemon']['cp_when_deployed'],
                     'num_upgrades':
                         pokemon.get('num_upgrades', 0),
                     'move_1':
