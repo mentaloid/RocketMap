@@ -42,7 +42,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 19
+db_schema_version = 20
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -542,11 +542,10 @@ class Pokestop(BaseModel):
 
 
 class Gym(BaseModel):
-
     gym_id = Utf8mb4CharField(primary_key=True, max_length=50)
     team_id = SmallIntegerField()
     guard_pokemon_id = SmallIntegerField()
-    gym_points = IntegerField()
+    slots_available = SmallIntegerField()
     enabled = BooleanField()
     latitude = DoubleField()
     longitude = DoubleField()
@@ -616,6 +615,7 @@ class Gym(BaseModel):
                        .select(
                            GymMember.gym_id,
                            GymPokemon.cp.alias('pokemon_cp'),
+                           GymPokemon.cp_decayed.alias('pokemon_cp_decayed'),
                            GymPokemon.pokemon_id,
                            Trainer.name.alias('trainer_name'),
                            Trainer.level.alias('trainer_level'))
@@ -626,7 +626,7 @@ class Gym(BaseModel):
                                           Trainer.name))
                        .where(GymMember.gym_id << gym_ids)
                        .where(GymMember.last_scanned > Gym.last_modified)
-                       .order_by(GymMember.gym_id, GymPokemon.cp)
+                       .order_by(GymMember.gym_id, GymPokemon.cp_decayed)
                        .distinct()
                        .dicts())
 
@@ -679,7 +679,7 @@ class Gym(BaseModel):
                           GymDetails.name,
                           GymDetails.description,
                           Gym.guard_pokemon_id,
-                          Gym.gym_points,
+                          Gym.slots_available,
                           Gym.latitude,
                           Gym.longitude,
                           Gym.last_modified,
@@ -696,6 +696,7 @@ class Gym(BaseModel):
 
         pokemon = (GymMember
                    .select(GymPokemon.cp.alias('pokemon_cp'),
+                           GymPokemon.cp_decayed.alias('pokemon_cp_decayed'),
                            GymPokemon.pokemon_id,
                            GymPokemon.pokemon_uid,
                            GymPokemon.move_1,
@@ -711,7 +712,7 @@ class Gym(BaseModel):
                    .join(Trainer, on=(GymPokemon.trainer_name == Trainer.name))
                    .where(GymMember.gym_id == id)
                    .where(GymMember.last_scanned > Gym.last_modified)
-                   .order_by(GymPokemon.cp.desc())
+                   .order_by(GymPokemon.cp_decayed.desc())
                    .distinct()
                    .dicts())
 
@@ -1686,6 +1687,7 @@ class GymPokemon(BaseModel):
     pokemon_uid = Utf8mb4CharField(primary_key=True, max_length=50)
     pokemon_id = SmallIntegerField()
     cp = SmallIntegerField()
+    cp_decayed = SmallIntegerField()
     trainer_name = Utf8mb4CharField(index=True)
     num_upgrades = SmallIntegerField(null=True)
     move_1 = SmallIntegerField(null=True)
@@ -2279,7 +2281,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'gym_id': b64encode(str(f['id'])),
                         'team_id': f.get('owned_by_team', 0),
                         'guard_pokemon_id': f.get('guard_pokemon_id', 0),
-                        'gym_points': f.get('gym_points', 0),
+                        'slots_available': f['gym_display'].get(
+                            'slots_available', 0),
                         'enabled': f['enabled'],
                         'latitude': f['latitude'],
                         'longitude': f['longitude'],
@@ -2290,7 +2293,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'gym_id': f['id'],
                     'team_id': f.get('owned_by_team', 0),
                     'guard_pokemon_id': f.get('guard_pokemon_id', 0),
-                    'gym_points': f.get('gym_points', 0),
+                    'slots_available': f['gym_display'].get(
+                        'slots_available', 0),
                     'enabled': f['enabled'],
                     'latitude': f['latitude'],
                     'longitude': f['longitude'],
@@ -2470,7 +2474,8 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
             gym_pokemon[i] = {
                 'pokemon_uid': pokemon['id'],
                 'pokemon_id': pokemon['pokemon_id'],
-                'cp': pokemon['cp'],
+                'cp': member['motivated_pokemon']['cp_when_deployed'],
+                'cp_decayed': member['motivated_pokemon']['cp_now'],
                 'trainer_name': pokemon['owner_name'],
                 'num_upgrades': pokemon.get('num_upgrades', 0),
                 'move_1': pokemon.get('move_1'),
@@ -2480,7 +2485,8 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                 'stamina': pokemon.get('stamina'),
                 'stamina_max': pokemon.get('stamina_max'),
                 'cp_multiplier': pokemon.get('cp_multiplier'),
-                'additional_cp_multiplier': pokemon.get('additional_cp_multiplier', 0),
+                'additional_cp_multiplier': pokemon.get(
+                    'additional_cp_multiplier', 0),
                 'iv_defense': pokemon.get(
                     'individual_defense', 0),
                 'iv_stamina': pokemon.get(
@@ -2501,7 +2507,8 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                 webhook_data['pokemon'].append({
                     'pokemon_uid': pokemon['id'],
                     'pokemon_id': pokemon['pokemon_id'],
-                    'cp': pokemon['cp'],
+                    'cp': member['motivated_pokemon']['cp_when_deployed'],
+                    'cp_decayed': member['motivated_pokemon']['cp_now'],
                     'num_upgrades': pokemon.get(
                         'num_upgrades', 0),
                     'move_1': pokemon.get('move_1'),
@@ -3022,6 +3029,15 @@ def database_migrate(db, old_ver):
         migrate(
             migrator.add_column('pokemon', 'cp_multiplier',
                                 FloatField(null=True))
+        )
+
+    if old_ver < 20:
+        migrate(
+            migrator.drop_column('gym', 'gym_points'),
+            migrator.add_column('gym', 'slots_available',
+                                SmallIntegerField(null=True)),
+            migrator.add_column('gympokemon', 'cp_decayed',
+                                SmallIntegerField(null=True))
         )
 
     # Always log that we're done.

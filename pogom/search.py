@@ -1242,7 +1242,6 @@ def gym_request(api, position, gym, api_version):
         req.get_buddy_walked()
         response = req.call()
         response = clear_dict_response(response)
-        # Print pretty(x).
         return response
 
     except Exception as e:
