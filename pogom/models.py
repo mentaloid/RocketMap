@@ -549,6 +549,7 @@ class Gym(BaseModel):
     enabled = BooleanField()
     latitude = DoubleField()
     longitude = DoubleField()
+    total_cp = SmallIntegerField()
     last_modified = DateTimeField(index=True)
     last_scanned = DateTimeField(default=datetime.utcnow, index=True)
 
@@ -615,7 +616,8 @@ class Gym(BaseModel):
                        .select(
                            GymMember.gym_id,
                            GymPokemon.cp.alias('pokemon_cp'),
-                           GymPokemon.cp_decayed.alias('pokemon_cp_decayed'),
+                           GymMember.cp_decayed.alias('pokemon_cp_decayed'),
+                           GymMember.deployment_time.alias('deployment_time'),
                            GymPokemon.pokemon_id,
                            Trainer.name.alias('trainer_name'),
                            Trainer.level.alias('trainer_level'))
@@ -626,7 +628,7 @@ class Gym(BaseModel):
                                           Trainer.name))
                        .where(GymMember.gym_id << gym_ids)
                        .where(GymMember.last_scanned > Gym.last_modified)
-                       .order_by(GymMember.gym_id, GymPokemon.cp_decayed)
+                       .order_by(GymMember.gym_id, GymMember.cp_decayed)
                        .distinct()
                        .dicts())
 
@@ -696,7 +698,7 @@ class Gym(BaseModel):
 
         pokemon = (GymMember
                    .select(GymPokemon.cp.alias('pokemon_cp'),
-                           GymPokemon.cp_decayed.alias('pokemon_cp_decayed'),
+                           GymMember.cp_decayed.alias('pokemon_cp_decayed'),
                            GymPokemon.pokemon_id,
                            GymPokemon.pokemon_uid,
                            GymPokemon.move_1,
@@ -712,7 +714,7 @@ class Gym(BaseModel):
                    .join(Trainer, on=(GymPokemon.trainer_name == Trainer.name))
                    .where(GymMember.gym_id == id)
                    .where(GymMember.last_scanned > Gym.last_modified)
-                   .order_by(GymPokemon.cp_decayed.desc())
+                   .order_by(GymMember.cp_decayed.desc())
                    .distinct()
                    .dicts())
 
@@ -1678,6 +1680,8 @@ class GymMember(BaseModel):
     gym_id = Utf8mb4CharField(index=True)
     pokemon_uid = Utf8mb4CharField(index=True)
     last_scanned = DateTimeField(default=datetime.utcnow, index=True)
+    deployment_time = DateTimeField()
+    cp_decayed = SmallIntegerField()
 
     class Meta:
         primary_key = False
@@ -1687,7 +1691,6 @@ class GymPokemon(BaseModel):
     pokemon_uid = Utf8mb4CharField(primary_key=True, max_length=50)
     pokemon_id = SmallIntegerField()
     cp = SmallIntegerField()
-    cp_decayed = SmallIntegerField()
     trainer_name = Utf8mb4CharField(index=True)
     num_upgrades = SmallIntegerField(null=True)
     move_1 = SmallIntegerField(null=True)
@@ -1786,12 +1789,12 @@ class HashKeys(BaseModel):
     @staticmethod
     # Retrieve the last stored 'peak' value for each hashing key.
     def getStoredPeak(key):
-            result = HashKeys.select(HashKeys.peak).where(HashKeys.key == key)
-            if result:
-                # only one row can be returned
-                return result[0].peak
-            else:
-                return 0
+        result = HashKeys.select(HashKeys.peak).where(HashKeys.key == key)
+        if result:
+            # only one row can be returned
+            return result[0].peak
+        else:
+            return 0
 
 
 def hex_bounds(center, steps=None, radius=None):
@@ -2278,28 +2281,46 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     # the information pushed to webhooks.  Similar to above
                     # and previous commits.
                     wh_update_queue.put(('gym', {
-                        'gym_id': b64encode(str(f['id'])),
-                        'team_id': f.get('owned_by_team', 0),
-                        'guard_pokemon_id': f.get('guard_pokemon_id', 0),
-                        'slots_available': f['gym_display'].get(
-                            'slots_available', 0),
-                        'enabled': f['enabled'],
-                        'latitude': f['latitude'],
-                        'longitude': f['longitude'],
-                        'last_modified': f['last_modified_timestamp_ms']
+                        'gym_id':
+                            b64encode(str(f['id'])),
+                        'team_id':
+                            f.get('owned_by_team', 0),
+                        'guard_pokemon_id':
+                            f.get('guard_pokemon_id', 0),
+                        'slots_available':
+                            f['gym_display'].get('slots_available', 0),
+                        'total_cp':
+                            f['gym_display'].get('total_gym_cp', 0),
+                        'enabled':
+                            f['enabled'],
+                        'latitude':
+                            f['latitude'],
+                        'longitude':
+                            f['longitude'],
+                        'last_modified':
+                            f['last_modified_timestamp_ms']
                     }))
 
                 gyms[f['id']] = {
-                    'gym_id': f['id'],
-                    'team_id': f.get('owned_by_team', 0),
-                    'guard_pokemon_id': f.get('guard_pokemon_id', 0),
-                    'slots_available': f['gym_display'].get(
-                        'slots_available', 0),
-                    'enabled': f['enabled'],
-                    'latitude': f['latitude'],
-                    'longitude': f['longitude'],
-                    'last_modified': datetime.utcfromtimestamp(
-                        f['last_modified_timestamp_ms'] / 1000.0),
+                    'gym_id':
+                        f['id'],
+                    'team_id':
+                        f.get('owned_by_team', 0),
+                    'guard_pokemon_id':
+                        f.get('guard_pokemon_id', 0),
+                    'slots_available':
+                        f['gym_display'].get('slots_available', 0),
+                    'total_cp':
+                        f['gym_display'].get('total_gym_cp', 0),
+                    'enabled':
+                        f['enabled'],
+                    'latitude':
+                        f['latitude'],
+                    'longitude':
+                        f['longitude'],
+                    'last_modified':
+                        datetime.utcfromtimestamp(
+                            f['last_modified_timestamp_ms'] / 1000.0),
                 }
 
             # Only stops and gyms right now.
@@ -2467,33 +2488,53 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
         for member in gym_state.get('gym_defender', []):
             pokemon = member['motivated_pokemon']['pokemon']
             gym_members[i] = {
-                'gym_id': gym_id,
-                'pokemon_uid': pokemon['id']
+                'gym_id':
+                    gym_id,
+                'pokemon_uid':
+                    pokemon['id'],
+                'cp_decayed':
+                    member['motivated_pokemon']['cp_now'],
+                'deployment_time':
+                    datetime.utcnow() -
+                    timedelta(milliseconds=member['deployment_totals']
+                              ['deployment_duration_ms'])
             }
 
             gym_pokemon[i] = {
-                'pokemon_uid': pokemon['id'],
-                'pokemon_id': pokemon['pokemon_id'],
-                'cp': member['motivated_pokemon']['cp_when_deployed'],
-                'cp_decayed': member['motivated_pokemon']['cp_now'],
-                'trainer_name': pokemon['owner_name'],
-                'num_upgrades': pokemon.get('num_upgrades', 0),
-                'move_1': pokemon.get('move_1'),
-                'move_2': pokemon.get('move_2'),
-                'height': pokemon.get('height_m'),
-                'weight': pokemon.get('weight_kg'),
-                'stamina': pokemon.get('stamina'),
-                'stamina_max': pokemon.get('stamina_max'),
-                'cp_multiplier': pokemon.get('cp_multiplier'),
-                'additional_cp_multiplier': pokemon.get(
-                    'additional_cp_multiplier', 0),
-                'iv_defense': pokemon.get(
-                    'individual_defense', 0),
-                'iv_stamina': pokemon.get(
-                    'individual_stamina', 0),
-                'iv_attack': pokemon.get(
-                    'individual_attack', 0),
-                'last_seen': datetime.utcnow(),
+                'pokemon_uid':
+                    pokemon['id'],
+                'pokemon_id':
+                    pokemon['pokemon_id'],
+                'cp':
+                    member['motivated_pokemon']['cp_when_deployed'],
+                'trainer_name':
+                    pokemon['owner_name'],
+                'num_upgrades':
+                    pokemon.get('num_upgrades', 0),
+                'move_1':
+                    pokemon.get('move_1'),
+                'move_2':
+                    pokemon.get('move_2'),
+                'height':
+                    pokemon.get('height_m'),
+                'weight':
+                    pokemon.get('weight_kg'),
+                'stamina':
+                    pokemon.get('stamina'),
+                'stamina_max':
+                    pokemon.get('stamina_max'),
+                'cp_multiplier':
+                    pokemon.get('cp_multiplier'),
+                'additional_cp_multiplier':
+                    pokemon.get('additional_cp_multiplier', 0),
+                'iv_defense':
+                    pokemon.get('individual_defense', 0),
+                'iv_stamina':
+                    pokemon.get('individual_stamina', 0),
+                'iv_attack':
+                    pokemon.get('individual_attack', 0),
+                'last_seen':
+                    datetime.utcnow(),
             }
 
             trainers[i] = {
@@ -3035,10 +3076,14 @@ def database_migrate(db, old_ver):
         migrate(
             migrator.drop_column('gym', 'gym_points'),
             migrator.add_column('gym', 'slots_available',
-                                SmallIntegerField(null=True)),
-            migrator.add_column('gympokemon', 'cp_decayed',
-                                SmallIntegerField(null=True))
-        )
+                                SmallIntegerField(null=False, default=0)),
+            migrator.add_column('gymmember', 'cp_decayed',
+                                SmallIntegerField(null=False, default=0)),
+            migrator.add_column('gymmember', 'deployment_time',
+                                DateTimeField(
+                                    null=False, default=datetime.utcnow())),
+            migrator.add_column('gym', 'total_cp',
+                                SmallIntegerField(null=False, default=0)))
 
     # Always log that we're done.
     log.info('Schema upgrade complete.')
